@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: homerate-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: homerate
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - homerate-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: homerate-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongodb:27017/homerate
+      JWT_SECRET: your-secret-key-here
+      REACT_APP_OSMO_RPC_URL: https://rpc.osmosis.zone
+      REACT_APP_OSMO_REST_URL: https://lcd.osmosis.zone
+    depends_on:
+      - mongodb
+    volumes:
+      - ./src/backend:/app/src/backend
+    networks:
+      - homerate-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: homerate-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:5000/api
+      NEXT_PUBLIC_OSMO_RPC_URL: https://rpc.osmosis.zone
+    depends_on:
+      - backend
+    volumes:
+      - ./src/frontend:/app/src/frontend
+    networks:
+      - homerate-network
+
+volumes:
+  mongo_data:
+
+networks:
+  homerate-network:
+    driver: bridge
